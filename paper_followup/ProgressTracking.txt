@@ -1,0 +1,67 @@
+14/2/2021: project kick-off
+
+15/2/2021:
+- Implemented cropping algorithm defined in method 1.
+Issues:
+- Virtual environment python 3.5 no longer exist.
+- Virtual environment python 3.7 'base' conda is not compatible.
+
+16/2/2021
+- Generated new virtual conda environment for python 3.7 and tensorflow 1.14.
+- Installed necessary libraries as described by author's project github repo.
+- Changed configuration of keras from theano -> tensorflow.
+- Successfully made the code run on new environment.
+
+Analysis:
+- Using object's bbox to define cropping area caused the newly generated cropped images became too small.
+- These small images then be resized to 416x416 size before being processed by yolov3.
+-> As the result, yolov3 cannot recognize any objects at all.
+
+17/2/2021
+From the analysis made on 16/2, method 1 is determined to change.
+1. Objects located in middle zone of the image is preferred.
+   -> cropping criteria would be easier to perform
+2. Cropping area can be smaller than 416x416 s.t. enlarging by resizing algorithm would not result in weird shape. However, crop area with bigger size than 416x416 also acceptable.
+However, we can consider the cropping size to be fixed with 416x416.
+3. From the fixed cropping size, try to allocate object to corner and make prediction from here.
+
+Analysis:
+Fixed cropping size was determined to be 224x224.
+Total number of object with both edge measurement to be smaller than half of defined cropped size (112) was 22516 objects.
+After applying the cropping criteria, number of qualified objects dropped to 1467 objects.
+Let's try to apply prediction & get statistical data from this image set.
+
+2/3/2021
+Selected randomly 1000 objects -> generated 1000 sample images for each cropped image with fixed size (224, 224)
+- object located in center
+- object located in top-left corner
+- object located in top-right corner
+- object located in bot-left corner
+- object located in bot-right corner
+
+Result: (refer to method1_0_eval.ipynb)
+Percentage of recognizable objects
+top L:   41.7 %
+bot L:   46.4 %
+centr:   54.2 %
+bot R:   46.7 %
+top R:   42.2 %
+
+Analysis:
+_ Enlarging image (from 224x224 to 416x416) might affect the prediction, compared to scaling down from original image to 416x416.
+_ Objects in center have higher rate to be recognized by YOLOv3 than those located in corners.
+_ In addition, objects at below half have higher rate to be recognized by YOLOv3 than those on top.
+_ However, percentage of misclassified objects in the top is lower than those in the bottom.
+The difference is 1% so it is hard to tell they are really distinct apart.
+_ Predicted bounding box of a large object cover the bounding box of a smaller object (large object stands behind the smaller object).
+_ From the unidentified_xxx.html, the marked objects were relatively small.
+
+What I don't understand based on my observation of how object's bbox was drawn:
+_ Sometime, only part of an object is shown in the image.
+Example1: 2 motorbikes side-by-side ([156044]), only first part of a motorbike was marked.
+Example2: front vs. back vs. side angle of a motorbike.
+Can YOLOv3 infer the full object if it was trained on partial part of a particular object it saw in the training dataset?
+Should sample data include those elusive scenarios?
+
+I think there is bias in the way human mark the object's bbox.
+For example: a bookshelf was marked as 'book' category, instead of marking every single book.
